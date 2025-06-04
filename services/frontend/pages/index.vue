@@ -1,6 +1,7 @@
 <script lang="ts" setup>
 import {definePageMeta} from "#imports";
 import IndexHeaderBar from "~/components/ui/headers/IndexHeaderBar/index.vue";
+import IndexFooter from "~/components/ui/footers/IndexFooter/index.vue";
 
 const sections = [
   {label: 'Hero', to: '#hero'},
@@ -109,7 +110,7 @@ definePageMeta({
     </main>
 
     <footer>
-
+      <IndexFooter/>
     </footer>
   </div>
 
