@@ -1,0 +1,33 @@
+name: Deploy Nuxt App
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'services/frontend/**'
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout código
+        uses: actions/checkout@v3
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '22'
+
+      - name: Instalar dependências
+        working-directory: services/frontend
+        run: npm ci
+
+      - name: Build da aplicação Nuxt
+        working-directory: services/frontend
+        run: npm run build
+
+      - name: Exportar app estático (se for static)
+        working-directory: services/frontend
+        run: npm run generate
