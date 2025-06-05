@@ -1,0 +1,33 @@
+name: Build Golang Application
+
+on:
+    push:
+        branches:
+            - main
+        paths:
+            - 'services/backend/oidc-service/**'
+
+jobs:
+    build:
+        runs-on: ubuntu-latest
+
+        steps:
+            - name: Checkout código
+              uses: actions/checkout@v3
+
+            - name: Setup Go
+              uses: actions/setup-go@v4
+              with:
+                go-version: '1.24.2'
+
+            - name: Instalar dependências
+              working-directory: services/backend/oidc-service
+              run: go mod download
+
+            - name: Build da aplicação Go
+              working-directory: services/backend/oidc-service
+              run: go build -o bin/oidc-service ./cmd/service/main.go
+
+            - name: Executar testes
+              working-directory: services/backend/oidc-service
+              run: go test ./...
