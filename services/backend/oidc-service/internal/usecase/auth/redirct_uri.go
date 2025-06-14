@@ -7,6 +7,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/phuslu/log"
 	"golang.org/x/oauth2"
+	"time"
 )
 
 type RedirectUseCase interface {
@@ -49,7 +50,7 @@ func (u *ImplRedirectUseCase) generateState() string {
 }
 
 func (u *ImplRedirectUseCase) saveCache(ctx context.Context, key string, data []byte) error {
-	err := u.cacheClient.Set(ctx, key, data, 0)
+	err := u.cacheClient.Set(ctx, key, data, 5*time.Minute)
 	if err != nil {
 		log.Error().Err(err).Msg("error storing state in cache")
 		return ErrStoreStateInCache
