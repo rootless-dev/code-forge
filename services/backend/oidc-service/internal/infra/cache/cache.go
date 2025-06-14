@@ -5,11 +5,12 @@ import (
 	"errors"
 	"github.com/phuslu/log"
 	"github.com/redis/go-redis/v9"
+	"time"
 )
 
 type Cache interface {
 	Get(ctx context.Context, key string) ([]byte, error)
-	Set(ctx context.Context, key string, value []byte) error
+	Set(ctx context.Context, key string, value []byte, expirationTime time.Duration) error
 }
 
 type CacheType rune

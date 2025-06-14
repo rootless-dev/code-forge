@@ -7,29 +7,19 @@ import (
 )
 
 type RedisClient struct {
-	rdb            *redis.Client
-	expirationTime time.Duration
+	rdb *redis.Client
 }
 
-// newRedisCacheClient creates a new Redis cache client with an optional expiration time.
-// If no expiration time is provided, it defaults to 5 minutes.
+// newRedisCacheClient initializes a new RedisClient instance that implements the Cache interface.
 //
 // Parameters:
-//   - rdb: A pointer to a Redis client.
-//   - expirationTime: Optional expiration time for cache entries.
+//   - rdb: A pointer to an already initialized Redis client instance.
 //
 // Returns:
-//   - A Cache interface backed by Redis.
-func newRedisCacheClient(rdb *redis.Client, expirationTime ...time.Duration) Cache {
-	expiration := 5 * time.Minute
-
-	if len(expirationTime) > 0 {
-		expiration = expirationTime[0]
-	}
-
+//   - A Cache interface implemented by the RedisClient.
+func newRedisCacheClient(rdb *redis.Client) Cache {
 	return &RedisClient{
-		rdb:            rdb,
-		expirationTime: expiration,
+		rdb: rdb,
 	}
 }
 
@@ -45,15 +35,16 @@ func (c *RedisClient) Get(ctx context.Context, key string) ([]byte, error) {
 	return c.rdb.Get(ctx, key).Bytes()
 }
 
-// Set stores the given value in Redis with the configured expiration time.
+// Set stores the given value in Redis under the specified key with a custom expiration duration.
 //
 // Parameters:
 //   - ctx: Context for cancellation and timeout control.
 //   - key: The key under which the value is stored.
 //   - value: The value to store as a byte slice.
+//   - expirationTime: Duration for which the key should remain in Redis before expiring.
 //
 // Returns:
 //   - An error if the operation fails.
-func (c *RedisClient) Set(ctx context.Context, key string, value []byte) error {
-	return c.rdb.Set(ctx, key, value, c.expirationTime).Err()
+func (c *RedisClient) Set(ctx context.Context, key string, value []byte, expirationTime time.Duration) error {
+	return c.rdb.Set(ctx, key, value, expirationTime).Err()
 }

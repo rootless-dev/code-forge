@@ -61,7 +61,7 @@ func TestRedisClient_ValidWriteAndRead(t *testing.T) {
 
 	ctx := context.Background()
 
-	err = redisClientInstance.Set(ctx, "key", []byte("value"))
+	err = redisClientInstance.Set(ctx, "key", []byte("value"), 0)
 	if err != nil {
 		t.Errorf("expected no error, got %s", err)
 		return
