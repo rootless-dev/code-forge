@@ -1,7 +1,13 @@
 package server
 
-import "github.com/gofiber/fiber/v2"
+import (
+	"fmt"
+	"github.com/gofiber/fiber/v2"
+)
 
-func NewHttpServer() *fiber.App {
-	return fiber.New()
+func NewHttpServer(appName, version, shortCommit string) *fiber.App {
+	fullAppName := fmt.Sprintf("%s %s (%s)", appName, version, shortCommit)
+	return fiber.New(fiber.Config{
+		AppName: fullAppName,
+	})
 }

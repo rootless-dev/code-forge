@@ -3,7 +3,7 @@ name: Build Golang Application
 on:
     push:
         branches:
-            - main
+            - "**"
         paths:
             - 'services/backend/oidc-service/**'
 
