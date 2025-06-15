@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"github.com/carlosealves2/code-forge/oidc-service/internal/core/entity"
 	"github.com/carlosealves2/code-forge/oidc-service/internal/infra/cache"
 	"github.com/coreos/go-oidc/v3/oidc"
 	"github.com/phuslu/log"
@@ -109,7 +110,14 @@ func TestNewRedirectUseCase(t *testing.T) {
 	}
 
 	redirectUseCase := NewRedirectUseCase(options)
-	redirectUri := redirectUseCase.Execute(context.Background())
+
+	input := &RedirectUseCaseInput{
+		UserAgent: "Mozilla/5.0 (Macintosh; Intel Mac OS X 10.15; rv:120.0) Gecko/20100101 Firefox/120.0",
+		IP:        "127.0.0.1",
+		Timestamp: time.Now().UTC(),
+	}
+
+	redirectUri := redirectUseCase.Execute(context.Background(), input)
 	if redirectUri == "" {
 		t.Errorf("expected a valid redirect uri, got %s", redirectUri)
 	}
@@ -132,8 +140,26 @@ func TestNewRedirectUseCase(t *testing.T) {
 		return
 	}
 
-	if string(data) != state {
-		t.Errorf("expected state to be the same as the value stored in cache, got %s", string(data))
+	var stateData entity.StateData
+
+	err = json.Unmarshal(data, &stateData)
+	if err != nil {
+		t.Errorf("expected no error, got %s", err)
+		return
+	}
+
+	if stateData.UserAgent != input.UserAgent {
+		t.Errorf("expected user agent to be the same as the value stored in cache, got %s", stateData.UserAgent)
+		return
+	}
+
+	if stateData.IP != input.IP {
+		t.Errorf("expected ip to be the same as the value stored in cache, got %s", stateData.IP)
+		return
+	}
+
+	if stateData.Timestamp != input.Timestamp {
+		t.Errorf("expected timestamp to be the same as the value stored in cache, got %s", stateData.Timestamp)
 	}
 }
 
@@ -180,7 +206,13 @@ func TestImplRedirectUseCase_Execute_ShouldReturnAnEmptyString(t *testing.T) {
 		cacheClient:  m,
 	}
 
-	redirectUri := redirectUseCase.Execute(context.Background())
+	input := &RedirectUseCaseInput{
+		UserAgent: "Mozilla/5.0 (Macintosh; Intel Mac OS X 10.15; rv:120.0) Gecko/20100101 Firefox/120.0",
+		IP:        "127.0.0.1",
+		Timestamp: time.Now().UTC(),
+	}
+
+	redirectUri := redirectUseCase.Execute(context.Background(), input)
 	if redirectUri != "" {
 		t.Errorf("expected an empty string, got %s", redirectUri)
 	}
