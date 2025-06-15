@@ -2,7 +2,9 @@ package auth
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
+	"github.com/carlosealves2/code-forge/oidc-service/internal/core/entity"
 	"github.com/carlosealves2/code-forge/oidc-service/internal/infra/cache"
 	"github.com/google/uuid"
 	"github.com/phuslu/log"
@@ -11,7 +13,7 @@ import (
 )
 
 type RedirectUseCase interface {
-	Execute(context.Context) string
+	Execute(context.Context, *RedirectUseCaseInput) string
 }
 type ImplRedirectUseCase struct {
 	oauth2Config *oauth2.Config
@@ -34,19 +36,36 @@ func NewRedirectUseCase(options *RedirectUseCaseOptions) RedirectUseCase {
 	}
 }
 
-func (u *ImplRedirectUseCase) Execute(ctx context.Context) string {
-	state := u.generateState()
+type RedirectUseCaseInput struct {
+	UserAgent string
+	IP        string
+	Timestamp time.Time
+}
 
-	err := u.saveCache(ctx, state, []byte(state))
+func (u *ImplRedirectUseCase) Execute(ctx context.Context, input *RedirectUseCaseInput) string {
+	stateData := u.generateState(input)
+
+	rawStateData, err := json.Marshal(stateData)
+	if err != nil {
+		log.Error().Err(err).Msg("error serializing state")
+		return ""
+	}
+
+	err = u.saveCache(ctx, stateData.ID, rawStateData)
 	if err != nil {
 		return ""
 	}
 
-	return u.oauth2Config.AuthCodeURL(state)
+	return u.oauth2Config.AuthCodeURL(stateData.ID)
 }
 
-func (u *ImplRedirectUseCase) generateState() string {
-	return uuid.NewString()
+func (u *ImplRedirectUseCase) generateState(input *RedirectUseCaseInput) *entity.StateData {
+	return &entity.StateData{
+		ID:        uuid.New().String(),
+		Timestamp: input.Timestamp,
+		IP:        input.IP,
+		UserAgent: input.UserAgent,
+	}
 }
 
 func (u *ImplRedirectUseCase) saveCache(ctx context.Context, key string, data []byte) error {
