@@ -7,4 +7,5 @@ type StateData struct {
 	Timestamp time.Time `json:"timestamp"`
 	IP        string    `json:"ip"`
 	UserAgent string    `json:"user_agent"`
+	Nonce     string    `json:"nonce"`
 }
