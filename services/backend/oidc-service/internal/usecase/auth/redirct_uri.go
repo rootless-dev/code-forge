@@ -4,7 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
-	"github.com/carlosealves2/code-forge/oidc-service/internal/core/entity"
+	"github.com/carlosealves2/code-forge/oidc-service/internal/dto"
 	"github.com/carlosealves2/code-forge/oidc-service/internal/infra/cache"
 	"github.com/google/uuid"
 	"github.com/phuslu/log"
@@ -59,8 +59,8 @@ func (u *ImplRedirectUseCase) Execute(ctx context.Context, input *RedirectUseCas
 	return u.oauth2Config.AuthCodeURL(stateData.ID)
 }
 
-func (u *ImplRedirectUseCase) generateState(input *RedirectUseCaseInput) *entity.StateData {
-	return &entity.StateData{
+func (u *ImplRedirectUseCase) generateState(input *RedirectUseCaseInput) *dto.StateData {
+	return &dto.StateData{
 		ID:        uuid.New().String(),
 		Timestamp: input.Timestamp,
 		IP:        input.IP,

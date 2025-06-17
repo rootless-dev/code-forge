@@ -5,7 +5,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
-	"github.com/carlosealves2/code-forge/oidc-service/internal/core/entity"
+	"github.com/carlosealves2/code-forge/oidc-service/internal/dto"
 	"github.com/carlosealves2/code-forge/oidc-service/internal/infra/cache"
 	"github.com/coreos/go-oidc/v3/oidc"
 	"github.com/phuslu/log"
@@ -140,7 +140,7 @@ func TestNewRedirectUseCase(t *testing.T) {
 		return
 	}
 
-	var stateData entity.StateData
+	var stateData dto.StateData
 
 	err = json.Unmarshal(data, &stateData)
 	if err != nil {
