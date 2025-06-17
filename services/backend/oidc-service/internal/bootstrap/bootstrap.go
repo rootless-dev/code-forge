@@ -24,8 +24,7 @@ import (
 func New(version, shortCommit string) *app.App {
 	cfg := configs.NewConfigBuilder().WithEnv(version, shortCommit).Validate().Build()
 
-	oidcConfig := initOidc(cfg)
-
+	oidcConfig, provider := initOidc(cfg)
 	cacheService := initCacheService(cfg)
 
 	initRedirectUseCase(oidcConfig, cacheService)
@@ -39,7 +38,7 @@ func New(version, shortCommit string) *app.App {
 	return app.New(cfg, httpServer)
 }
 
-func initOidc(cfg *configs.AppConfig) *oauth2.Config {
+func initOidc(cfg *configs.AppConfig) (*oauth2.Config, *oidc.Provider) {
 	provider, err := oidc.NewProvider(context.Background(), cfg.OIDC().ProviderURL())
 	if err != nil {
 		log.Fatal().Err(err).Msg("error creating oidc provider")
@@ -53,7 +52,7 @@ func initOidc(cfg *configs.AppConfig) *oauth2.Config {
 		Endpoint: provider.Endpoint(),
 
 		Scopes: []string{oidc.ScopeOpenID, "profile", "email"},
-	}
+	}, provider
 }
 
 func initCacheService(cfg *configs.AppConfig) cache.Cache {
