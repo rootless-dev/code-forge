@@ -5,26 +5,30 @@ import (
 	"github.com/gofiber/fiber/v2"
 	"github.com/phuslu/log"
 	"net/http"
+	"strings"
 	"time"
 )
 
 // OIDCHandler provides methods to handle OpenID Connect (OIDC) redirection and callback processes for authentication flows.
 type OIDCHandler struct {
-	redirectUseCase auth.RedirectUseCase
-	callbackUseCase auth.CallbackOauth2UseCase
+	redirectUseCase     auth.RedirectUseCase
+	callbackUseCase     auth.CallbackOauth2UseCase
+	refreshTokenUseCase auth.RefreshTokenUseCase
 }
 
 // OIDCHandlerDependencies contains the dependencies required for handling OIDC operations, including Redirect and Callback use cases.
 type OIDCHandlerDependencies struct {
-	RedirectUseCase auth.RedirectUseCase
-	CallbackUseCase auth.CallbackOauth2UseCase
+	RedirectUseCase     auth.RedirectUseCase
+	CallbackUseCase     auth.CallbackOauth2UseCase
+	RefreshTokenUseCase auth.RefreshTokenUseCase
 }
 
 // NewOIDCHandler creates and returns a new instance of OIDCHandler with the provided dependencies.
 func NewOIDCHandler(deps *OIDCHandlerDependencies) *OIDCHandler {
 	return &OIDCHandler{
-		redirectUseCase: deps.RedirectUseCase,
-		callbackUseCase: deps.CallbackUseCase,
+		redirectUseCase:     deps.RedirectUseCase,
+		callbackUseCase:     deps.CallbackUseCase,
+		refreshTokenUseCase: deps.RefreshTokenUseCase,
 	}
 }
 
@@ -72,6 +76,38 @@ func (o *OIDCHandler) Callback() fiber.Handler {
 					"error": err.Error(),
 					"code":  http.StatusInternalServerError,
 				})
+		}
+
+		return c.JSON(out)
+	}
+}
+
+func (o *OIDCHandler) RefreshToken() fiber.Handler {
+	return func(c *fiber.Ctx) error {
+		refreshToken := c.Get("Authorization")
+		if refreshToken == "" {
+			return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
+				"error": "missing authorization header",
+				"code":  http.StatusUnauthorized,
+			})
+		}
+
+		refreshToken = strings.TrimPrefix(refreshToken, "Bearer ")
+		if len(refreshToken) == 0 {
+			return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
+				"error": "invalid token format",
+				"code":  http.StatusUnauthorized,
+			})
+		}
+
+		out, err := o.refreshTokenUseCase.Execute(c.Context(), &auth.RefreshTokenUseCaseInput{
+			RefreshToken: refreshToken,
+		})
+		if err != nil {
+			return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+				"error": err.Error(),
+				"code":  http.StatusInternalServerError,
+			})
 		}
 
 		return c.JSON(out)
