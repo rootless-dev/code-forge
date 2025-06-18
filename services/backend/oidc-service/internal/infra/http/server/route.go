@@ -7,4 +7,5 @@ import (
 
 func AddRoute(app *fiber.App, oidcHandler *handler.OIDCHandler) {
 	app.Get("/sso/login", oidcHandler.Redirect())
+	app.Get("/sso/callback", oidcHandler.Callback())
 }
