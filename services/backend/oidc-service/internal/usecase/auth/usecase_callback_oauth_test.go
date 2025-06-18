@@ -20,11 +20,16 @@ func (m *MockVerifier) Verify(ctx context.Context, rawIDToken string) (*oidc.IDT
 }
 
 type MockOAuth2Config struct {
-	ExchangeFunc func(ctx context.Context, code string) (*oauth2.Token, error)
+	ExchangeFunc    func(ctx context.Context, code string) (*oauth2.Token, error)
+	TokenSourceFunc func(ctx context.Context, t *oauth2.Token) oauth2.TokenSource
 }
 
 func (m *MockOAuth2Config) Exchange(ctx context.Context, code string, opts ...oauth2.AuthCodeOption) (*oauth2.Token, error) {
 	return m.ExchangeFunc(ctx, code)
+}
+
+func (m *MockOAuth2Config) TokenSource(ctx context.Context, t *oauth2.Token) oauth2.TokenSource {
+	return m.TokenSourceFunc(ctx, t)
 }
 
 func TestCallbackUseCase_Success(t *testing.T) {

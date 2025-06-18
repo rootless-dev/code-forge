@@ -17,16 +17,6 @@ type CallbackOauth2UseCase interface {
 	Execute(ctx context.Context, input *CallbackOauth2UseCaseInput) (*dto.Token, error)
 }
 
-// Oauth2ConfigInterface defines a contract for exchanging an authorization code for an OAuth2 token using specified options.
-type Oauth2ConfigInterface interface {
-	Exchange(ctx context.Context, code string, opts ...oauth2.AuthCodeOption) (*oauth2.Token, error)
-}
-
-// OIDCVerifierInterface defines the method to validate and parse an OpenID Connect ID token.
-type OIDCVerifierInterface interface {
-	Verify(ctx context.Context, rawIDToken string) (*oidc.IDToken, error)
-}
-
 // ImplCallbackOauth2UseCase is an implementation of the CallbackOauth2UseCase interface for handling OAuth2 callbacks.
 // It uses an OIDC verifier, an OAuth2 configuration, and a cache client for state validation and token handling.
 type ImplCallbackOauth2UseCase struct {
