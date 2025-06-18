@@ -29,14 +29,20 @@ func New(version, shortCommit string) *app.App {
 	cacheService := initCacheService(cfg)
 
 	redirectUseCase := initRedirectUseCase(oidcConfig, cacheService)
-
 	callbackUseCase := initCallbackUseCase(cfg, oidcConfig, provider, cacheService)
+	refreshTokenUseCase := initRefreshTokenUseCase(oidcConfig)
 
 	httpServer := server.NewHttpServer(cfg.AppName(), version, shortCommit)
 
 	setupMiddlewares(httpServer, cfg)
 
-	server.AddRoute(httpServer, initHttpHandler(redirectUseCase, callbackUseCase))
+	server.AddRoute(
+		httpServer,
+		initHttpHandler(
+			redirectUseCase,
+			callbackUseCase,
+			refreshTokenUseCase,
+		))
 
 	return app.New(cfg, httpServer)
 }
@@ -93,10 +99,18 @@ func initCallbackUseCase(
 	return auth.NewCallbackOauth2UseCase(verifier, oauth2Config, cacheClient)
 }
 
-func initHttpHandler(redirectUseCase auth.RedirectUseCase, callbackUseCase auth.CallbackOauth2UseCase) *handler.OIDCHandler {
+func initRefreshTokenUseCase(oauth2Config *oauth2.Config) auth.RefreshTokenUseCase {
+	return auth.NewRefreshTokenUseCase(oauth2Config)
+}
+func initHttpHandler(
+	redirectUseCase auth.RedirectUseCase,
+	callbackUseCase auth.CallbackOauth2UseCase,
+	refreshTokenUseCase auth.RefreshTokenUseCase,
+) *handler.OIDCHandler {
 	return handler.NewOIDCHandler(&handler.OIDCHandlerDependencies{
-		RedirectUseCase: redirectUseCase,
-		CallbackUseCase: callbackUseCase,
+		RedirectUseCase:     redirectUseCase,
+		CallbackUseCase:     callbackUseCase,
+		RefreshTokenUseCase: refreshTokenUseCase,
 	})
 }
 

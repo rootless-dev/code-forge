@@ -14,17 +14,7 @@ import (
 
 // CallbackOauth2UseCase defines a contract for handling OAuth2 callback logic with input validation and token processing.
 type CallbackOauth2UseCase interface {
-	Execute(ctx context.Context, input *CallbackOauth2UseCaseInput) (*CallbackOauth2UseCaseOutput, error)
-}
-
-// Oauth2ConfigInterface defines a contract for exchanging an authorization code for an OAuth2 token using specified options.
-type Oauth2ConfigInterface interface {
-	Exchange(ctx context.Context, code string, opts ...oauth2.AuthCodeOption) (*oauth2.Token, error)
-}
-
-// OIDCVerifierInterface defines the method to validate and parse an OpenID Connect ID token.
-type OIDCVerifierInterface interface {
-	Verify(ctx context.Context, rawIDToken string) (*oidc.IDToken, error)
+	Execute(ctx context.Context, input *CallbackOauth2UseCaseInput) (*dto.Token, error)
 }
 
 // ImplCallbackOauth2UseCase is an implementation of the CallbackOauth2UseCase interface for handling OAuth2 callbacks.
@@ -94,7 +84,7 @@ type CallbackOauth2UseCaseOutput struct {
 }
 
 // Execute handles the OAuth2 callback process, performs validations, and returns the access and refresh tokens.
-func (u *ImplCallbackOauth2UseCase) Execute(ctx context.Context, input *CallbackOauth2UseCaseInput) (*CallbackOauth2UseCaseOutput, error) {
+func (u *ImplCallbackOauth2UseCase) Execute(ctx context.Context, input *CallbackOauth2UseCaseInput) (*dto.Token, error) {
 	cachedState, err := u.retrieveStateFromCache(ctx, input.State)
 	if err != nil {
 		return nil, err
@@ -121,7 +111,7 @@ func (u *ImplCallbackOauth2UseCase) Execute(ctx context.Context, input *Callback
 		return nil, err
 	}
 
-	return &CallbackOauth2UseCaseOutput{
+	return &dto.Token{
 		AccessToken:  oauth2Token.AccessToken,
 		RefreshToken: oauth2Token.RefreshToken,
 	}, nil
