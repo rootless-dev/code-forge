@@ -4,8 +4,9 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
-	"github.com/carlosealves2/code-forge/oidc-service/internal/core/entity"
+	"github.com/carlosealves2/code-forge/oidc-service/internal/dto"
 	"github.com/carlosealves2/code-forge/oidc-service/internal/infra/cache"
+	"github.com/coreos/go-oidc/v3/oidc"
 	"github.com/google/uuid"
 	"github.com/phuslu/log"
 	"golang.org/x/oauth2"
@@ -56,15 +57,16 @@ func (u *ImplRedirectUseCase) Execute(ctx context.Context, input *RedirectUseCas
 		return ""
 	}
 
-	return u.oauth2Config.AuthCodeURL(stateData.ID)
+	return u.oauth2Config.AuthCodeURL(stateData.ID, oidc.Nonce(stateData.Nonce))
 }
 
-func (u *ImplRedirectUseCase) generateState(input *RedirectUseCaseInput) *entity.StateData {
-	return &entity.StateData{
+func (u *ImplRedirectUseCase) generateState(input *RedirectUseCaseInput) *dto.StateData {
+	return &dto.StateData{
 		ID:        uuid.New().String(),
 		Timestamp: input.Timestamp,
 		IP:        input.IP,
 		UserAgent: input.UserAgent,
+		Nonce:     uuid.New().String(),
 	}
 }
 

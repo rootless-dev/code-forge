@@ -19,27 +19,29 @@ import (
 	"github.com/phuslu/log"
 	"github.com/redis/go-redis/v9"
 	"golang.org/x/oauth2"
+	"time"
 )
 
 func New(version, shortCommit string) *app.App {
 	cfg := configs.NewConfigBuilder().WithEnv(version, shortCommit).Validate().Build()
 
-	oidcConfig := initOidc(cfg)
-
+	oidcConfig, provider := initOidc(cfg)
 	cacheService := initCacheService(cfg)
 
-	initRedirectUseCase(oidcConfig, cacheService)
+	redirectUseCase := initRedirectUseCase(oidcConfig, cacheService)
+
+	callbackUseCase := initCallbackUseCase(cfg, oidcConfig, provider, cacheService)
 
 	httpServer := server.NewHttpServer(cfg.AppName(), version, shortCommit)
 
 	setupMiddlewares(httpServer, cfg)
 
-	server.AddRoute(httpServer, initHttpHandler(initRedirectUseCase(oidcConfig, cacheService)))
+	server.AddRoute(httpServer, initHttpHandler(redirectUseCase, callbackUseCase))
 
 	return app.New(cfg, httpServer)
 }
 
-func initOidc(cfg *configs.AppConfig) *oauth2.Config {
+func initOidc(cfg *configs.AppConfig) (*oauth2.Config, *oidc.Provider) {
 	provider, err := oidc.NewProvider(context.Background(), cfg.OIDC().ProviderURL())
 	if err != nil {
 		log.Fatal().Err(err).Msg("error creating oidc provider")
@@ -53,7 +55,7 @@ func initOidc(cfg *configs.AppConfig) *oauth2.Config {
 		Endpoint: provider.Endpoint(),
 
 		Scopes: []string{oidc.ScopeOpenID, "profile", "email"},
-	}
+	}, provider
 }
 
 func initCacheService(cfg *configs.AppConfig) cache.Cache {
@@ -81,12 +83,24 @@ func initRedirectUseCase(oauth2Config *oauth2.Config, cacheClient cache.Cache) a
 	})
 }
 
-func initHttpHandler(redirectUseCase auth.RedirectUseCase) *handler.OIDCHandler {
+func initCallbackUseCase(
+	cfg *configs.AppConfig,
+	oauth2Config *oauth2.Config,
+	provider *oidc.Provider,
+	cacheClient cache.Cache) auth.CallbackOauth2UseCase {
+	verifier := provider.Verifier(&oidc.Config{ClientID: cfg.OIDC().ClientID()})
+
+	return auth.NewCallbackOauth2UseCase(verifier, oauth2Config, cacheClient)
+}
+
+func initHttpHandler(redirectUseCase auth.RedirectUseCase, callbackUseCase auth.CallbackOauth2UseCase) *handler.OIDCHandler {
 	return handler.NewOIDCHandler(&handler.OIDCHandlerDependencies{
 		RedirectUseCase: redirectUseCase,
+		CallbackUseCase: callbackUseCase,
 	})
 }
 
+// setupMiddlewares configures middleware for the provided Fiber app, including logging, CORS, healthcheck, rate limiting, and profiling.
 func setupMiddlewares(app *fiber.App, cfg *configs.AppConfig) {
 	app.Use(logger.New())
 
@@ -97,7 +111,17 @@ func setupMiddlewares(app *fiber.App, cfg *configs.AppConfig) {
 
 	app.Use(healthcheck.New())
 
-	app.Use(limiter.New())
+	app.Use(limiter.New(limiter.Config{
+		Max: 5,
+		KeyGenerator: func(c *fiber.Ctx) string {
+			return c.Get("x-forwarded-for")
+		},
+		Expiration: 30 * time.Second,
+		LimitReached: func(c *fiber.Ctx) error {
+			return c.Status(fiber.StatusTooManyRequests).SendString("Too many requests")
+		},
+		Storage: nil,
+	}))
 
 	app.Use(pprof.New())
 }

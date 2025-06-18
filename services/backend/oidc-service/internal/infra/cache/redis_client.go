@@ -48,3 +48,13 @@ func (c *RedisClient) Get(ctx context.Context, key string) ([]byte, error) {
 func (c *RedisClient) Set(ctx context.Context, key string, value []byte, expirationTime time.Duration) error {
 	return c.rdb.Set(ctx, key, value, expirationTime).Err()
 }
+
+// Remove deletes the specified key from Redis and returns an error if the operation fails.
+// Parameters:
+// - ctx: Context for cancellation and timeout control.
+// - key: The key to be removed.
+// Returns:
+// - An error if deletion fails.
+func (c *RedisClient) Remove(ctx context.Context, key string) error {
+	return c.rdb.Del(ctx, key).Err()
+}
