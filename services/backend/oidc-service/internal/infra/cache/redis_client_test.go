@@ -77,3 +77,29 @@ func TestRedisClient_ValidWriteAndRead(t *testing.T) {
 		t.Errorf("expected value, got %s", value)
 	}
 }
+
+func TestRedisClient_Remove(t *testing.T) {
+	endpoint, err := setupRedisContainerAndGetServiceURL(t)
+	if err != nil {
+		t.Errorf("expected no error, got %s", err)
+		return
+	}
+
+	rdb := redis.NewClient(&redis.Options{Addr: endpoint})
+
+	redisClientInstance := newRedisCacheClient(rdb)
+
+	ctx := context.Background()
+
+	err = redisClientInstance.Set(ctx, "key", []byte("value"), 0)
+	if err != nil {
+		t.Errorf("expected no error, got %s", err)
+		return
+	}
+
+	err = redisClientInstance.Remove(ctx, "key")
+	if err != nil {
+		t.Errorf("expected no error, got %s", err)
+		return
+	}
+}

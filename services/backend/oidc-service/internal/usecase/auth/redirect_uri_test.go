@@ -164,8 +164,9 @@ func TestNewRedirectUseCase(t *testing.T) {
 }
 
 type MockCacheClient struct {
-	GetFunc func(ctx context.Context, key string) ([]byte, error)
-	SetFunc func(ctx context.Context, key string, value []byte, expirationTime time.Duration) error
+	GetFunc    func(ctx context.Context, key string) ([]byte, error)
+	SetFunc    func(ctx context.Context, key string, value []byte, expirationTime time.Duration) error
+	RemoveFunc func(ctx context.Context, key string) error
 }
 
 func (m MockCacheClient) Get(ctx context.Context, key string) ([]byte, error) {
@@ -174,6 +175,10 @@ func (m MockCacheClient) Get(ctx context.Context, key string) ([]byte, error) {
 
 func (m MockCacheClient) Set(ctx context.Context, key string, value []byte, expirationTime time.Duration) error {
 	return m.SetFunc(ctx, key, value, expirationTime)
+}
+
+func (m MockCacheClient) Remove(ctx context.Context, key string) error {
+	return m.RemoveFunc(ctx, key)
 }
 
 func TestSaveCacheShouldReturnError(t *testing.T) {
