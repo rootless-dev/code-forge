@@ -27,10 +27,12 @@ func New(version, shortCommit string) *app.App {
 
 	oidcConfig, provider := initOidc(cfg)
 	cacheService := initCacheService(cfg)
+	verifier := setupVerifier(cfg, provider)
 
 	redirectUseCase := initRedirectUseCase(oidcConfig, cacheService)
-	callbackUseCase := initCallbackUseCase(cfg, oidcConfig, provider, cacheService)
+	callbackUseCase := initCallbackUseCase(oidcConfig, verifier, cacheService)
 	refreshTokenUseCase := initRefreshTokenUseCase(oidcConfig)
+	meUseCase := initMeUseCase(provider, verifier, oidcConfig)
 
 	httpServer := server.NewHttpServer(cfg.AppName(), version, shortCommit)
 
@@ -38,10 +40,12 @@ func New(version, shortCommit string) *app.App {
 
 	server.AddRoute(
 		httpServer,
+		verifier,
 		initHttpHandler(
 			redirectUseCase,
 			callbackUseCase,
 			refreshTokenUseCase,
+			meUseCase,
 		))
 
 	return app.New(cfg, httpServer)
@@ -90,11 +94,9 @@ func initRedirectUseCase(oauth2Config *oauth2.Config, cacheClient cache.Cache) a
 }
 
 func initCallbackUseCase(
-	cfg *configs.AppConfig,
 	oauth2Config *oauth2.Config,
-	provider *oidc.Provider,
+	verifier *oidc.IDTokenVerifier,
 	cacheClient cache.Cache) auth.CallbackOauth2UseCase {
-	verifier := provider.Verifier(&oidc.Config{ClientID: cfg.OIDC().ClientID()})
 
 	return auth.NewCallbackOauth2UseCase(verifier, oauth2Config, cacheClient)
 }
@@ -102,15 +104,22 @@ func initCallbackUseCase(
 func initRefreshTokenUseCase(oauth2Config *oauth2.Config) auth.RefreshTokenUseCase {
 	return auth.NewRefreshTokenUseCase(oauth2Config)
 }
+
+func initMeUseCase(provider *oidc.Provider, verifier *oidc.IDTokenVerifier, oauth2Config *oauth2.Config) auth.MeUseCase {
+	return auth.NewMeUseCase(provider, verifier, oauth2Config)
+}
+
 func initHttpHandler(
 	redirectUseCase auth.RedirectUseCase,
 	callbackUseCase auth.CallbackOauth2UseCase,
 	refreshTokenUseCase auth.RefreshTokenUseCase,
+	meUseCase auth.MeUseCase,
 ) *handler.OIDCHandler {
 	return handler.NewOIDCHandler(&handler.OIDCHandlerDependencies{
 		RedirectUseCase:     redirectUseCase,
 		CallbackUseCase:     callbackUseCase,
 		RefreshTokenUseCase: refreshTokenUseCase,
+		MeUseCase:           meUseCase,
 	})
 }
 
@@ -138,4 +147,8 @@ func setupMiddlewares(app *fiber.App, cfg *configs.AppConfig) {
 	}))
 
 	app.Use(pprof.New())
+}
+
+func setupVerifier(cfg *configs.AppConfig, provider *oidc.Provider) *oidc.IDTokenVerifier {
+	return provider.Verifier(&oidc.Config{ClientID: cfg.OIDC().ClientID()})
 }

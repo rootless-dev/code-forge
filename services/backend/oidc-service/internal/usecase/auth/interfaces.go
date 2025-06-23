@@ -16,3 +16,7 @@ type Oauth2ConfigInterface interface {
 type OIDCVerifierInterface interface {
 	Verify(ctx context.Context, rawIDToken string) (*oidc.IDToken, error)
 }
+
+type OIDCProviderInterface interface {
+	UserInfo(ctx context.Context, tokenSource oauth2.TokenSource) (*oidc.UserInfo, error)
+}

@@ -14,6 +14,7 @@ type OIDCHandler struct {
 	redirectUseCase     auth.RedirectUseCase
 	callbackUseCase     auth.CallbackOauth2UseCase
 	refreshTokenUseCase auth.RefreshTokenUseCase
+	meUseCase           auth.MeUseCase
 }
 
 // OIDCHandlerDependencies contains the dependencies required for handling OIDC operations, including Redirect and Callback use cases.
@@ -21,6 +22,7 @@ type OIDCHandlerDependencies struct {
 	RedirectUseCase     auth.RedirectUseCase
 	CallbackUseCase     auth.CallbackOauth2UseCase
 	RefreshTokenUseCase auth.RefreshTokenUseCase
+	MeUseCase           auth.MeUseCase
 }
 
 // NewOIDCHandler creates and returns a new instance of OIDCHandler with the provided dependencies.
@@ -29,6 +31,7 @@ func NewOIDCHandler(deps *OIDCHandlerDependencies) *OIDCHandler {
 		redirectUseCase:     deps.RedirectUseCase,
 		callbackUseCase:     deps.CallbackUseCase,
 		refreshTokenUseCase: deps.RefreshTokenUseCase,
+		meUseCase:           deps.MeUseCase,
 	}
 }
 
@@ -103,6 +106,36 @@ func (o *OIDCHandler) RefreshToken() fiber.Handler {
 		out, err := o.refreshTokenUseCase.Execute(c.Context(), &auth.RefreshTokenUseCaseInput{
 			RefreshToken: refreshToken,
 		})
+		if err != nil {
+			return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+				"error": err.Error(),
+				"code":  http.StatusInternalServerError,
+			})
+		}
+
+		return c.JSON(out)
+	}
+}
+
+func (o *OIDCHandler) Me() fiber.Handler {
+	return func(c *fiber.Ctx) error {
+		token := c.Get("Authorization")
+		if token == "" {
+			return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
+				"error": "missing authorization header",
+				"code":  http.StatusUnauthorized,
+			})
+		}
+
+		token = strings.TrimPrefix(token, "Bearer ")
+		if len(token) == 0 {
+			return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
+				"error": "invalid token format",
+				"code":  http.StatusUnauthorized,
+			})
+		}
+
+		out, err := o.meUseCase.GetUserInfo(c.Context(), &auth.MeUseCaseInput{AccessToken: token})
 		if err != nil {
 			return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
 				"error": err.Error(),

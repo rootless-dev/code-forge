@@ -13,6 +13,11 @@ import (
 
 type MockVerifier struct {
 	VerifyFunc func(ctx context.Context, rawIDToken string) (*oidc.IDToken, error)
+	ClaimsFunc func(v interface{}) error
+}
+
+func (m *MockVerifier) Claims(v interface{}) error {
+	return m.ClaimsFunc(v)
 }
 
 func (m *MockVerifier) Verify(ctx context.Context, rawIDToken string) (*oidc.IDToken, error) {
